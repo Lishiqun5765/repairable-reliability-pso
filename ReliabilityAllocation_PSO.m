@@ -50,7 +50,7 @@ function CAIE()
     %% 3. Figures
     [TotalCost_Opt, C_mfg_opt, C_war_opt, sys_mtbf_opt, ~] = CalculateDetails(theta_opt, subsystems, sys_params);
 
-    % --- Figure 1 ---
+    % --- Figure 1: Convergence ---
     figure('Color','w', 'Position', [50, 100, 550, 400]);
     plot(history.iteration, history.fval, 'b-', 'LineWidth', 2);
     xlabel('Iteration Number', 'Interpreter', 'latex');
@@ -64,93 +64,6 @@ function CAIE()
     plot(history.iteration(start_idx:end), history.fval(start_idx:end), 'b-');
     title('Final 50 Iterations');
     grid on;
-
-    % --- Figure 2 ---
-    target_idx = 1;
-    target_sys = subsystems(target_idx);
-    theta_range = linspace(target_sys.Tech_LB, target_sys.Tech_UB * 0.99, 100); 
-    
-    costs_mfg = zeros(size(theta_range));
-    costs_war = zeros(size(theta_range));
-    costs_total = zeros(size(theta_range));
-    
-    temp_theta = theta_opt; 
-    for k = 1:length(theta_range)
-        temp_theta(target_idx) = theta_range(k);
-        [~, cm, cw, ~, ~] = CalculateDetails(temp_theta, subsystems, sys_params);
-        costs_mfg(k) = cm(target_idx);
-        costs_war(k) = cw(target_idx);
-        costs_total(k) = cm(target_idx) + cw(target_idx);
-    end
-    
-    figure('Color','w', 'Position', [620, 100, 550, 400]);
-    yyaxis left
-    plot(theta_range, costs_total, 'k-', 'LineWidth', 2);
-    ylabel('Total Cost', 'Interpreter', 'latex');
-    hold on;
-    plot(theta_opt(target_idx), C_mfg_opt(target_idx)+C_war_opt(target_idx), 'ro', 'MarkerSize', 8, 'MarkerFaceColor','r');
-    text(theta_opt(target_idx), C_mfg_opt(target_idx)+C_war_opt(target_idx)*1.05, ' Optimal point', 'FontSize',10);
-    
-    yyaxis right
-    plot(theta_range, costs_mfg, 'b--', 'LineWidth', 1.5);
-    hold on;
-    plot(theta_range, costs_war, 'g-.', 'LineWidth', 1.5);
-    ylabel('Component Costs', 'Interpreter', 'latex');
-    
-    xlabel(['MTBF of ' target_sys.Name ' (h)'], 'Interpreter', 'latex');
-    title(['Cost Trade-off Analysis for ' target_sys.Name], 'Interpreter', 'latex');
-    legend({'Total Cost', 'Optimal', 'Manufacturing Cost', 'Warranty Cost'}, 'Location', 'North', 'Interpreter','latex');
-    grid on; ax = gca; ax.YAxis(1).Color = 'k';
-    ax.YAxis(2).Color = 'k';
-
-    % --- Figure 3 ---
-    figure('Color','w', 'Position', [50, 580, 650, 450]);
-    b = bar([C_mfg_opt; C_war_opt]', 'stacked', 'BarWidth', 0.6);
-    b(1).FaceColor = [0.2 0.6 0.8];
-    b(2).FaceColor = [0.9 0.4 0.3];
-    
-    for i = 1:n
-        xt = i;
-        y1 = C_mfg_opt(i);
-        y2 = C_war_opt(i);
-        text(xt, y1/2, sprintf('%.2f', y1), 'HorizontalAlignment','center', 'Color','w', 'FontSize', 9);
-        text(xt, y1 + y2/2, sprintf('%.2f', y2), 'HorizontalAlignment','center', 'Color','w', 'FontSize', 9);
-        text(xt, y1 + y2 + 0.1, sprintf('%.2f', y1+y2), 'HorizontalAlignment','center', 'Color','k', 'FontWeight','bold');
-    end
-    
-    set(gca, 'XTickLabel', {subsystems.Name}, 'XTick', 1:n);
-    xtickangle(20);
-    ylabel('Cost (CNY 10k)', 'Interpreter', 'latex');
-    title('Optimal Cost Breakdown per Subsystem', 'Interpreter', 'latex');
-    legend({'Manufacturing Cost ($C$)', 'Warranty Cost ($P$)'}, 'Interpreter', 'latex', 'Location','NorthWest');
-    grid on; box on;
-
-    % --- Figure 4 ---
-    figure('Color','w', 'Position', [720, 580, 550, 450]);
-    perturbation = linspace(0.8, 1.2, 50); 
-    hold on;
-    colors = lines(n);
-    
-    for i = 1:n
-        y_pert = zeros(size(perturbation));
-        base_val = theta_opt(i);
-        for k = 1:length(perturbation)
-            temp_theta = theta_opt;
-            new_val = base_val * perturbation(k);
-            % Constrain perturbations within absolute technical boundaries
-            new_val = max(subsystems(i).Tech_LB, min(subsystems(i).Tech_UB, new_val));
-            temp_theta(i) = new_val;
-            y_pert(k) = ObjectiveFunction(temp_theta, subsystems, sys_params);
-        end
-        plot(perturbation, y_pert, 'LineWidth', 1.5, 'Color', colors(i,:), 'DisplayName', subsystems(i).Name);
-    end
-    
-    xline(1, 'k--', 'Optimal');
-    xlabel('Normalized MTBF ($\theta_i / \theta_i^*$)', 'Interpreter', 'latex');
-    ylabel('System Total Cost', 'Interpreter', 'latex');
-    title('Local Sensitivity Analysis around Optimal Solution', 'Interpreter', 'latex');
-    legend('show', 'Location', 'Best', 'Interpreter', 'none');
-    grid on; box on;
 
     fprintf('\n======================================================\n');
     fprintf('>> Optimization completed!\n');
